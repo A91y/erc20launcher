@@ -13,13 +13,13 @@ contract ERC20Launcher is ERC20 {
         string memory symbol,
         uint256 initialSupply,
         uint8 _decimals,
-        uint256 _maxSupply
+        uint256 _maxSupply // includes the decimals
     ) ERC20(name, symbol) {
         require(_maxSupply >= initialSupply, "Max supply must be greater than or equal to initial supply");
         decimal = _decimals;
         _mint(msg.sender, initialSupply * 10 ** decimal);
         owner = msg.sender;
-        maxSupply = _maxSupply * 10 ** decimal;
+        maxSupply = _maxSupply;
     }
 
     modifier onlyOwner() {
