@@ -5,7 +5,14 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 export default function Form() {
   const [isFutureMintChecked, setIsFutureMintChecked] = useState(false);
   const [isMaxSupplyFixed, setIsMaxSupplyFixed] = useState(true);
@@ -33,7 +40,7 @@ export default function Form() {
   };
 
   return (
-    <div className="max-w-2xl w-full rounded-none md:rounded-2xl p-4 md:p-12 shadow-input bg-white dark:bg-black">
+    <div className="max-w-2xl w-full rounded-2xl p-4 md:p-12 shadow-input bg-white dark:bg-black">
       <h1 className="font-bold text-2xl text-neutral-800 dark:text-neutral-200 text-center">
         ERC 20 Launcher
       </h1>
@@ -120,6 +127,22 @@ export default function Form() {
           <BottomGradient />
         </button>
       </form>
+      <div className="flex justify-between items-center">
+        <div>Networks</div>
+        <Select>
+          <SelectTrigger className="w-[240px]">
+            <SelectValue placeholder="Select a Network" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="default">Default Network</SelectItem>
+              <SelectItem value="ethereum-mainnet">Ethereum Mainnet</SelectItem>
+              <SelectItem value="sepolia">Sepolia</SelectItem>
+              <SelectItem value="Polygon Amoy">Polygon Amoy</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }

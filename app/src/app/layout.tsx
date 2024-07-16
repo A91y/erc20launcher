@@ -20,7 +20,7 @@ export default function RootLayout({
       <body
         className={cn(
           inter.className,
-          "dark min-h-screen flex justify-center items-center"
+          "dark"
         )}
       >
         {children}
