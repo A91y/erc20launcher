@@ -15,7 +15,10 @@ contract ERC20Launcher is ERC20 {
         uint8 _decimals,
         uint256 _maxSupply // includes the decimals
     ) ERC20(name, symbol) {
-        require(_maxSupply >= initialSupply, "Max supply must be greater than or equal to initial supply");
+        require(
+            _maxSupply >= initialSupply * 10 ** _decimals,
+            "Max supply must be greater than or equal to initial supply"
+        );
         decimal = _decimals;
         _mint(msg.sender, initialSupply * 10 ** decimal);
         owner = msg.sender;
@@ -28,7 +31,10 @@ contract ERC20Launcher is ERC20 {
     }
 
     function mint(address account, uint256 amount) external onlyOwner {
-        require(totalSupply() + (amount * 10 ** decimals()) <= maxSupply, "Minting would exceed max supply");
+        require(
+            totalSupply() + (amount * 10 ** decimals()) <= maxSupply,
+            "Minting would exceed max supply"
+        );
         _mint(account, amount * 10 ** decimals());
     }
 
@@ -80,7 +86,7 @@ contract ERC20Launcher is ERC20 {
         maxSupply -= amount;
     }
 
-    function decimals() public view override virtual returns (uint8) {
+    function decimals() public view virtual override returns (uint8) {
         return decimal;
     }
 
