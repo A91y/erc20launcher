@@ -14,6 +14,11 @@ const config: HardhatUserConfig = {
       chainId: 11155111,
       accounts: [`0x${process.env.SEPOLIA_PRIVATE_KEY}`],
     },
+    polygonamoy: {
+      url: `https://polygon-amoy.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+      chainId: 80002,
+      accounts: [`0x${process.env.POLYGON_PRIVATE_KEY}`],
+    },
   },
 };
 

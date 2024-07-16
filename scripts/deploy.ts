@@ -18,7 +18,9 @@ async function main() {
 
   await erc20Launcher.deployed();
 
-  console.log(`ERC20Launcher deployed to: ${erc20Launcher.address}`); // 0x7A626E602408a6638bBA1A13816C3c1674e51858
+  console.log(`ERC20Launcher deployed to: ${erc20Launcher.address}`); 
+  // Sepolia: 0x7A626E602408a6638bBA1A13816C3c1674e51858
+  // Polygon Amoy: 0xA126F38E22e5c82BfD4846969041296dd4C157c0
 }
 
 // Running the main function and handling errors
