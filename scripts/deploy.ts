@@ -1,23 +1,30 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-  const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS;
+  const name = "AyushToken"; // Token name
+  const symbol = "ATK"; // Token symbol
+  const initialSupply = ethers.utils.parseUnits("1000000", 18); // Initial supply (e.g., 1,000,000 tokens with 18 decimals)
+  const decimals = 18; // Number of decimals
+  const maxSupply = ethers.constants.MaxUint256; // Maximum supply (uint256 maximum value)
+  // Deploying the ERC20Launcher contract
+  const ERC20Launcher = await ethers.getContractFactory("ERC20Launcher");
+  const erc20Launcher = await ERC20Launcher.deploy(
+    name,
+    symbol,
+    initialSupply,
+    decimals,
+    maxSupply,
+  );
 
-  const lockedAmount = ethers.utils.parseEther("1");
+  await erc20Launcher.deployed();
 
-  const Lock = await ethers.getContractFactory("Lock");
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
-
-  await lock.deployed();
-
-  console.log(`Lock with 1 ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`);
+  console.log(`ERC20Launcher deployed to: ${erc20Launcher.address}`); // 0x7A626E602408a6638bBA1A13816C3c1674e51858
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+// Running the main function and handling errors
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
