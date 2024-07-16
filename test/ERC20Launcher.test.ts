@@ -5,18 +5,18 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 describe("ERC20Launcher", function () {
   async function deployFixture() {
     const [owner, otherAccount] = await ethers.getSigners();
-
+    const decimals = 18;
     const ERC20Launcher = await ethers.getContractFactory("ERC20Launcher");
     const erc20Launcher = await ERC20Launcher.deploy(
       "Test Token", // Name
       "TT", // Symbol
       ethers.utils.parseUnits("1000000", 0), // Initial supply
-      18, // Decimals
-      ethers.utils.parseUnits("100000000000000000000", 18) // Max supply
+      decimals, // Decimals
+      ethers.utils.parseUnits("100000000000000000000", decimals) // Max supply
     );
     await erc20Launcher.deployed();
 
-    return { owner, otherAccount, erc20Launcher };
+    return { decimals, owner, otherAccount, erc20Launcher };
   }
 
   describe("Deployment", function () {
@@ -26,24 +26,24 @@ describe("ERC20Launcher", function () {
     });
 
     it("Should mint the total supply to owner", async function () {
-      const { owner, erc20Launcher } = await loadFixture(deployFixture);
-      const initialSupply = ethers.utils.parseUnits("1000000", 18);
+      const { owner, erc20Launcher, decimals } = await loadFixture(deployFixture);
+      const initialSupply = ethers.utils.parseUnits("1000000", decimals);
       expect(await erc20Launcher.balanceOf(owner.address)).to.equal(
         initialSupply
       );
     });
 
     it("Should have correct token metadata", async function () {
-      const { erc20Launcher } = await loadFixture(deployFixture);
+      const { decimals, erc20Launcher } = await loadFixture(deployFixture);
       expect(await erc20Launcher.name()).to.equal("Test Token");
       expect(await erc20Launcher.symbol()).to.equal("TT");
-      expect(await erc20Launcher.decimals()).to.equal(18);
+      expect(await erc20Launcher.decimals()).to.equal(decimals);
     });
   });
 
   describe("Minting", function () {
     it("Should allow owner to mint tokens", async function () {
-      const { owner, otherAccount, erc20Launcher } = await loadFixture(
+      const { otherAccount, erc20Launcher, decimals } = await loadFixture(
         deployFixture
       );
       await erc20Launcher.mint(
@@ -51,7 +51,7 @@ describe("ERC20Launcher", function () {
         ethers.utils.parseUnits("1000", 0)
       );
       expect(await erc20Launcher.balanceOf(otherAccount.address)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("1000", decimals)
       );
     });
 
@@ -64,45 +64,45 @@ describe("ERC20Launcher", function () {
     });
 
     it("Should stop minting after max supply is reached", async function () {
-      const { owner, erc20Launcher } = await loadFixture(deployFixture);
-      const initialSupply = ethers.utils.parseUnits("1000000", 18);
+      const { owner, erc20Launcher, decimals } = await loadFixture(deployFixture);
+      const initialSupply = ethers.utils.parseUnits("1000000", decimals);
       await erc20Launcher.mint(
         owner.address,
         ethers.utils.parseUnits("900000", 0)
       );
       expect(await erc20Launcher.totalSupply()).to.equal(
-        initialSupply.add(ethers.utils.parseUnits("900000", 18))
+        initialSupply.add(ethers.utils.parseUnits("900000", decimals))
       );
 
       await erc20Launcher.stopMinting();
       await expect(
-        erc20Launcher.mint(owner.address, ethers.utils.parseUnits("100000", 18))
+        erc20Launcher.mint(owner.address, ethers.utils.parseUnits("100000", decimals))
       ).to.be.revertedWith("Minting would exceed max supply");
     });
   });
 
   describe("Transfers", function () {
     it("Should transfer tokens between accounts", async function () {
-      const { owner, otherAccount, erc20Launcher } = await loadFixture(
+      const { otherAccount, erc20Launcher, decimals } = await loadFixture(
         deployFixture
       );
       await erc20Launcher.transfer(
         otherAccount.address,
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("1000", decimals)
       );
       expect(await erc20Launcher.balanceOf(otherAccount.address)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("1000", decimals)
       );
     });
 
     it("Should fail if sender does not have enough balance", async function () {
-      const { owner, otherAccount, erc20Launcher } = await loadFixture(
+      const { owner, otherAccount, erc20Launcher, decimals } = await loadFixture(
         deployFixture
       );
       await expect(
         erc20Launcher
           .connect(otherAccount)
-          .transfer(owner.address, ethers.utils.parseUnits("1000", 18))
+          .transfer(owner.address, ethers.utils.parseUnits("1000", decimals))
       ).to.be.revertedWithCustomError(
         erc20Launcher,
         "ERC20InsufficientBalance"
@@ -110,45 +110,45 @@ describe("ERC20Launcher", function () {
     });
 
     it("Should update balances after transfers", async function () {
-      const { owner, otherAccount, erc20Launcher } = await loadFixture(
+      const { owner, otherAccount, erc20Launcher, decimals } = await loadFixture(
         deployFixture
       );
       await erc20Launcher.transfer(
         otherAccount.address,
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("1000", decimals)
       );
       expect(await erc20Launcher.balanceOf(otherAccount.address)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("1000", decimals)
       );
 
       await erc20Launcher
         .connect(otherAccount)
-        .transfer(owner.address, ethers.utils.parseUnits("500", 18));
+        .transfer(owner.address, ethers.utils.parseUnits("500", decimals));
       expect(await erc20Launcher.balanceOf(otherAccount.address)).to.equal(
-        ethers.utils.parseUnits("500", 18)
+        ethers.utils.parseUnits("500", decimals)
       );
       expect(await erc20Launcher.balanceOf(owner.address)).to.equal(
         ethers.utils
-          .parseUnits("1000000", 18)
-          .sub(ethers.utils.parseUnits("500", 18))
+          .parseUnits("1000000", decimals)
+          .sub(ethers.utils.parseUnits("500", decimals))
       );
     });
 
     it("Should emit Transfer event on successful transfer", async function () {
-      const { owner, otherAccount, erc20Launcher } = await loadFixture(
+      const { owner, otherAccount, erc20Launcher, decimals } = await loadFixture(
         deployFixture
       );
-      const amount = ethers.utils.parseUnits("1000", 18);
+      const amount = ethers.utils.parseUnits("1000", decimals);
       await expect(erc20Launcher.transfer(otherAccount.address, amount))
         .to.emit(erc20Launcher, "Transfer")
         .withArgs(owner.address, otherAccount.address, amount);
     });
 
     it("Should allow transferFrom after approval", async function () {
-      const { owner, otherAccount, erc20Launcher } = await loadFixture(
+      const { owner, otherAccount, erc20Launcher, decimals } = await loadFixture(
         deployFixture
       );
-      const amount = ethers.utils.parseUnits("1000", 18);
+      const amount = ethers.utils.parseUnits("1000", decimals);
 
       await erc20Launcher.approve(otherAccount.address, amount);
       await expect(
@@ -161,10 +161,10 @@ describe("ERC20Launcher", function () {
     });
 
     it("Should update allowance after approve", async function () {
-      const { owner, otherAccount, erc20Launcher } = await loadFixture(
+      const { owner, otherAccount, erc20Launcher, decimals } = await loadFixture(
         deployFixture
       );
-      const amount = ethers.utils.parseUnits("1000", 18);
+      const amount = ethers.utils.parseUnits("1000", decimals);
 
       await erc20Launcher.approve(otherAccount.address, amount);
       expect(
@@ -175,26 +175,27 @@ describe("ERC20Launcher", function () {
 
   describe("Decimals and Max Supply", function () {
     it("Should return correct decimals", async function () {
-      const { erc20Launcher } = await loadFixture(deployFixture);
-      expect(await erc20Launcher.decimals()).to.equal(18);
+      const { erc20Launcher, decimals } = await loadFixture(deployFixture);
+      expect(await erc20Launcher.decimals()).to.equal(decimals);
     });
 
     it("Should have correct max supply", async function () {
-      const { erc20Launcher } = await loadFixture(deployFixture);
+      const { erc20Launcher, decimals } = await loadFixture(deployFixture);
       expect(await erc20Launcher.maxSupply()).to.equal(
-        ethers.utils.parseUnits("100000000000000000000", 18)
+        ethers.utils.parseUnits("100000000000000000000", decimals)
       );
     });
 
     it("Should not allow max supply less than initial supply", async function () {
+      const decimals = 18;
       await expect(
         ethers.getContractFactory("ERC20Launcher").then((ERC20Launcher) =>
           ERC20Launcher.deploy(
             "Test Token",
             "TT",
-            ethers.utils.parseUnits("1000000", 18),
-            18,
-            ethers.utils.parseUnits("1000", 18) // Setting max supply less than initial supply
+            ethers.utils.parseUnits("1000000", decimals),
+            decimals,
+            ethers.utils.parseUnits("1000", decimals) // Setting max supply less than initial supply
           )
         )
       ).to.be.revertedWith(
@@ -205,11 +206,11 @@ describe("ERC20Launcher", function () {
 
   describe("Ownership", function () {
     it("Should only allow owner to mint tokens", async function () {
-      const { otherAccount, erc20Launcher } = await loadFixture(deployFixture);
+      const { otherAccount, erc20Launcher, decimals } = await loadFixture(deployFixture);
       await expect(
         erc20Launcher
           .connect(otherAccount)
-          .mint(otherAccount.address, ethers.utils.parseUnits("1000", 18))
+          .mint(otherAccount.address, ethers.utils.parseUnits("1000", decimals))
       ).to.be.revertedWith("Only the owner can call this function");
     });
 
