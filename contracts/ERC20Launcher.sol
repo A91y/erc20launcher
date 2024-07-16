@@ -7,18 +7,22 @@ contract ERC20Launcher is ERC20 {
     address public owner;
     bool public futureMintingEnabled;
     uint8 private decimal;
+    uint256 public maxSupply;
 
     constructor(
         string memory name,
         string memory symbol,
         uint256 initialSupply,
         uint8 _decimals,
-        bool _futureMintingEnabled
+        bool _futureMintingEnabled,
+        uint256 _maxSupply
     ) ERC20(name, symbol) {
+        require(!_futureMintingEnabled || _maxSupply >= initialSupply, "Max supply must be greater than or equal to initial supply if minting is enabled");
         decimal = _decimals;
         _mint(msg.sender, initialSupply * 10 ** decimal);
         owner = msg.sender;
         futureMintingEnabled = _futureMintingEnabled;
+        maxSupply = _futureMintingEnabled ? _maxSupply * 10 ** decimal : initialSupply * 10 ** decimal;
     }
 
     modifier onlyOwner() {
@@ -28,6 +32,7 @@ contract ERC20Launcher is ERC20 {
 
     function mint(address account, uint256 amount) external onlyOwner {
         require(futureMintingEnabled, "Can't mint more tokens");
+        require(totalSupply() + (amount * 10 ** decimals()) <= maxSupply, "Minting would exceed max supply");
         _mint(account, amount * 10 ** decimals());
     }
 
