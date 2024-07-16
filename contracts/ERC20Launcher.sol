@@ -19,7 +19,7 @@ contract ERC20Launcher is ERC20 {
         decimal = _decimals;
         _mint(msg.sender, initialSupply * 10 ** decimal);
         owner = msg.sender;
-        maxSupply = _maxSupply;
+        maxSupply = _maxSupply; // MAX VALUE = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff OR 115792089237316195423570985008687907853269984665640564039457584007913129639935
     }
 
     modifier onlyOwner() {
