@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -7,12 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Form() {
+  const [isFutureMintChecked, setIsFutureMintChecked] = useState(false);
+  const [isMaxSupplyFixed, setIsMaxSupplyFixed] = useState(true);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("data", {
+      tokenName: (e.target as any).tokenname.value,
+      ticker: (e.target as any).ticker.value,
+      decimals: (e.target as any).decimals.value,
+      initialSupply: (e.target as any).initialSupply.value,
+      maxSupply: (e.target as any).maxSupply?.value,
+      isFutureMintChecked,
+      isMaxSupplyFixed,
+    });
     console.log("Form submitted");
   };
+
+  const handleFutureMintCheckboxChange = () => {
+    setIsFutureMintChecked(!isFutureMintChecked);
+  };
+
+  const handleMaxSupplyCheckboxChange = () => {
+    setIsMaxSupplyFixed(!isMaxSupplyFixed);
+  };
+
   return (
-    <div className="max-w-2xl w-full rounded-none md:rounded-2xl p-4 md:p-12  shadow-input bg-white dark:bg-black">
+    <div className="max-w-2xl w-full rounded-none md:rounded-2xl p-4 md:p-12 shadow-input bg-white dark:bg-black">
       <h1 className="font-bold text-2xl text-neutral-800 dark:text-neutral-200 text-center">
         ERC 20 Launcher
       </h1>
@@ -60,19 +81,35 @@ export default function Form() {
             required
           />
         </LabelInputContainer>
-        <LabelInputContainer className="mb-4">
-          <Label htmlFor="maxSupply">
-            Max Supply <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="maxSupply"
-            placeholder="e.g. 10000"
-            type="number"
-            required
+        {isFutureMintChecked && (
+          <>
+            <LabelInputContainer className="mb-4">
+              <Label htmlFor="maxSupply">
+                Max Supply <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="maxSupply"
+                placeholder="e.g. 10000"
+                type="number"
+                required
+                disabled={!isMaxSupplyFixed}
+              />
+            </LabelInputContainer>
+            <div className="flex items-center space-x-2 mb-4">
+              <Checkbox
+                id="fixMaxSupply"
+                onCheckedChange={handleMaxSupplyCheckboxChange}
+                defaultChecked={isMaxSupplyFixed}
+              />
+              <Label htmlFor="fixMaxSupply">Fix Max Supply?</Label>
+            </div>
+          </>
+        )}
+        <div className="flex items-center space-x-2 mb-4">
+          <Checkbox
+            id="futureMint"
+            onCheckedChange={handleFutureMintCheckboxChange}
           />
-        </LabelInputContainer>
-        <div className="flex items-center space-x-2 mb-4    ">
-          <Checkbox id="futureMint" />
           <Label htmlFor="futureMint">Mint more in future?</Label>
         </div>
         <button
