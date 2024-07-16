@@ -77,6 +77,7 @@ contract ERC20Launcher is ERC20 {
 
     function burn(uint256 amount) public {
         _burn(msg.sender, amount);
+        maxSupply -= amount;
     }
 
     function decimals() public view override virtual returns (uint8) {
