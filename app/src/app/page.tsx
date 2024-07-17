@@ -1,5 +1,6 @@
 import Form from "@/components/Form";
 import Footer from "@/components/Footer";
+import { Toaster } from "@/components/ui/toaster"
 
 export default function Home() {
   return (
@@ -7,6 +8,7 @@ export default function Home() {
       <div> </div>
       <div className="flex justify-center items-center px-4">
         <Form />
+        <Toaster />
       </div>
       <Footer />
     </div>

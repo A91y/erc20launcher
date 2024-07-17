@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import ERC20LauncherABI from "../../../../artifacts/contracts/ERC20Launcher.sol/ERC20Launcher.json";
+import { useToast } from "@/components/ui/use-toast"
 
 // import {
 //   Select,
@@ -17,6 +18,7 @@ import ERC20LauncherABI from "../../../../artifacts/contracts/ERC20Launcher.sol/
 // } from "../ui/select";
 
 export default function Form() {
+  const { toast } = useToast()
   const [isFutureMintChecked, setIsFutureMintChecked] = useState(false);
   const [isMaxSupplyFixed, setIsMaxSupplyFixed] = useState(true);
   const [network, setNetwork] = useState<string>("");
@@ -24,22 +26,8 @@ export default function Form() {
   const [walletAddress, setWalletAddress] = useState("");
   const [isMdScreen, setIsMdScreen] = useState(true);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
-
-  // useEffect(() => {
-  //   const fetchNetwork = async () => {
-  //     if (typeof (window as any).ethereum !== "undefined") {
-  //       const provider = new ethers.providers.Web3Provider(
-  //         (window as any).ethereum
-  //       );
-  //       const network = await provider.getNetwork();
-  //       console.log(network);
-  //       setNetwork(network.name);
-  //     } else {
-  //       setNetwork("Default Network");
-  //     }
-  //   };
-  //   fetchNetwork();
-  // }, []);
+  const [loading, setLoading] = useState(false);
+  const [contractAddress, setContractAddress] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     function validateForm() {
@@ -54,8 +42,12 @@ export default function Form() {
       }
       return true;
     }
-    validateForm();
+
+    if (!validateForm()) return;
+
     e.preventDefault();
+    setLoading(true);
+    setContractAddress(null);
     const form = e.target as any;
     const tokenName = form.tokenname.value;
     const ticker = form.ticker.value;
@@ -66,6 +58,7 @@ export default function Form() {
         ? ethers.utils.parseUnits(form.maxSupply.value, decimals)
         : ethers.constants.MaxUint256
       : ethers.utils.parseUnits(form.initialSupply.value, decimals);
+
     console.log("Form submitted");
     console.log("Token Name: ", tokenName);
     console.log("Ticker: ", ticker);
@@ -74,6 +67,7 @@ export default function Form() {
     console.log("Max Supply: ", maxSupply);
 
     if (signer) {
+      setContractAddress(null);
       const ERC20LauncherFactory = new ethers.ContractFactory(
         ERC20LauncherABI.abi,
         ERC20LauncherABI.bytecode,
@@ -89,27 +83,44 @@ export default function Form() {
           maxSupply
         );
 
+        toast({
+          title: "Deploying Contract",
+          description: "Please wait...",
+        })
         await contract.deployed();
         console.log("Contract deployed at:", contract.address);
+        setContractAddress(contract.address);
+        localStorage.setItem("contractAddress", contract.address);
+        toast({
+          title: "Contract Deployed",
+          description: `Address: ${truncateAddress(contract.address)} (click to copy)`,
+          onClick: () => {
+            navigator.clipboard.writeText(contract.address);
+            toast({
+              title: "Copied token address to clipboard",
+            });
+          }
+        })
       } catch (error) {
         console.error("Error deploying contract:", error);
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   async function connectWallet() {
     if (typeof (window as any).ethereum !== "undefined") {
-      // show all the connected wallets and give options to connect other wallet
       const provider = new ethers.providers.Web3Provider(
         (window as any).ethereum,
         "any"
       );
       let accounts = await provider.send("eth_requestAccounts", []);
       let account = accounts[0];
-      console.log(accounts); // Print address
+      // console.log(accounts); // Print address
       provider.on("accountsChanged", function (accounts) {
         account = accounts[0];
-        console.log(account); // Print new address
+        // console.log(account); // Print new address
         setWalletAddress(_walletAddress);
       });
       // console.log("network: ", await provider.getNetwork());
@@ -120,6 +131,10 @@ export default function Form() {
       setWalletAddress(_walletAddress);
       setSigner(signer);
       // localStorage.setItem("walletAddress", _walletAddress);
+      toast({
+        title: "Wallet Connected",
+        description: "Address: " + _walletAddress,
+      })
     } else {
       console.log("No Ethereum Wallet");
       throw new Error("No Ethereum Wallet");
@@ -130,6 +145,9 @@ export default function Form() {
     setConnected(false);
     setWalletAddress("");
     localStorage.removeItem("walletAddress");
+    toast({
+      title: "Wallet Disconnected",
+    })
   }
 
   async function handleWalletButtonClick() {
@@ -158,6 +176,10 @@ export default function Form() {
     //   setConnected(true);
     //   setWalletAddress(storedWalletAddress);
     // }
+    const storedContractAddress = localStorage.getItem("contractAddress");
+    if (storedContractAddress) {
+      setContractAddress(storedContractAddress);
+    }
     const handleResize = () => {
       setIsMdScreen(window.innerWidth >= 768);
     };
@@ -253,10 +275,11 @@ export default function Form() {
         </div>
         {connected && (
           <button
-            className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
+            className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset] disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
+            disabled={loading}
           >
-            Launch
+            {loading ? "Launching..." : "Launch"}
             <BottomGradient />
           </button>
         )}
@@ -275,6 +298,22 @@ export default function Form() {
           {" "}
           {isMdScreen ? walletAddress : truncateAddress(walletAddress)}
         </p>
+      )}
+      {!!contractAddress && (
+        <div className="flex justify-center">
+          <button className="text-gray-600 mt-2 text-center text-sm last-address-button" onClick={()=>{navigator.clipboard.writeText(contractAddress);
+            toast({
+              title: "Copied last token address to clipboard",
+              description: truncateAddress(contractAddress),
+            });
+            document.getElementsByClassName("last-address-button")[0].innerHTML = "Copied!"
+            setTimeout(() => {
+              document.getElementsByClassName("last-address-button")[0].innerHTML = `${isMdScreen ? `Last Deployed: ${(contractAddress)}` : `Last Deployed: ${truncateAddress(contractAddress)}`}`
+            }, 2000)
+          }}>
+            {isMdScreen ? `Last Deployed: ${(contractAddress)}` : `Last Deployed: ${(contractAddress)}`}
+          </button>
+        </div>
       )}
       {/* <div className="flex justify-between items-center">
         <div>Network</div>
