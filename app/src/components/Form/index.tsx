@@ -21,23 +21,22 @@ export default function Form() {
   const [connected, setConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [isMdScreen, setIsMdScreen] = useState(true);
-  
 
-  useEffect(() => {
-    const fetchNetwork = async () => {
-      if (typeof (window as any).ethereum !== "undefined") {
-        const provider = new ethers.providers.Web3Provider(
-          (window as any).ethereum
-        );
-        const network = await provider.getNetwork();
-        console.log(network);
-        setNetwork(network.name);
-      } else {
-        setNetwork("Default Network");
-      }
-    };
-    fetchNetwork();
-  }, []);
+  // useEffect(() => {
+  //   const fetchNetwork = async () => {
+  //     if (typeof (window as any).ethereum !== "undefined") {
+  //       const provider = new ethers.providers.Web3Provider(
+  //         (window as any).ethereum
+  //       );
+  //       const network = await provider.getNetwork();
+  //       console.log(network);
+  //       setNetwork(network.name);
+  //     } else {
+  //       setNetwork("Default Network");
+  //     }
+  //   };
+  //   fetchNetwork();
+  // }, []);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,15 +53,32 @@ export default function Form() {
   };
 
   async function connectWallet() {
-    const provider = new ethers.providers.Web3Provider(
-      (window as any).ethereum
-    );
-    await provider.send("eth_requestAccounts", []);
-    const signer = await provider.getSigner();
-    const _walletAddress = await signer.getAddress();
-    setConnected(true);
-    setWalletAddress(_walletAddress);
-    localStorage.setItem("walletAddress", _walletAddress);
+    if (typeof (window as any).ethereum !== "undefined") {
+      // show all the connected wallets and give options to connect other wallet
+      const provider = new ethers.providers.Web3Provider(
+        (window as any).ethereum, "any"
+      );
+
+      let accounts = await provider.send("eth_accounts", []);
+
+      let account = accounts[0];
+      console.log(accounts); // Print address
+      provider.on('accountsChanged', function (accounts) {
+          account = accounts[0];
+          console.log(account); // Print new address
+          setWalletAddress(_walletAddress);
+      });
+  
+      const signer = provider.getSigner();
+  
+      const _walletAddress = await signer.getAddress();
+      setConnected(true);
+      setWalletAddress(_walletAddress);
+      localStorage.setItem("walletAddress", _walletAddress);
+    } else {
+      console.log("No Ethereum Wallet");
+      throw new Error("No Ethereum Wallet");
+    }
   }
 
   function disconnectWallet() {
@@ -210,7 +226,10 @@ export default function Form() {
         {connected ? "Disconnect Wallet" : "Connect Wallet"}
       </button>
       {connected && (
-        <p className="text-gray-500 mt-2 text-center text-sm"> {isMdScreen ? walletAddress : truncateAddress(walletAddress)}</p>
+        <p className="text-gray-500 mt-2 text-center text-sm">
+          {" "}
+          {isMdScreen ? walletAddress : truncateAddress(walletAddress)}
+        </p>
       )}
       {/* <div className="flex justify-between items-center">
         <div>Network</div>
