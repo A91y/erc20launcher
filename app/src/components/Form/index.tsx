@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import ERC20LauncherABI from "../../../../artifacts/contracts/ERC20Launcher.sol/ERC20Launcher.json";
+import ERC20LauncherABI from "@/app/artifacts/ERC20Launcher.json";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "../ui/toast";
 import SwitchNetworkDialog from "../SwitchNetworkDialog";
