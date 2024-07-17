@@ -17,13 +17,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={cn(
-          inter.className,
-          "dark"
-        )}
-      >
-        {children}
+      <body className={cn(inter.className, "dark")}>
+        <div className="mobile-message">
+          This site is not made for mobile users. Please switch to a desktop for the best experience.
+        </div>
+        <div className="main-content">
+          {children}
+        </div>
       </body>
     </html>
   );

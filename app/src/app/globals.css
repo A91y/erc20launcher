@@ -72,3 +72,28 @@
     margin: 0;
   }
 }
+
+@media (max-width: 768px) {
+  .mobile-message {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px;
+    background-color: #ffcc00;
+    color: #000;
+    text-align: center;
+    z-index: 1000;
+  }
+
+  .main-content {
+    opacity: 0.5;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-message {
+    display: none;
+  }
+}
