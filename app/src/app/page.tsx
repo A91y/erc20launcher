@@ -1,5 +1,5 @@
 import Form from "@/components/Form";
-import Footer from "./Footer";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
