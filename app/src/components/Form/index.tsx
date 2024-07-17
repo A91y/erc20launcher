@@ -1,27 +1,19 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { BigNumber, ethers } from "ethers";
+import { ethers } from "ethers";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import ERC20LauncherABI from "../../../../artifacts/contracts/ERC20Launcher.sol/ERC20Launcher.json";
-import { useToast } from "@/components/ui/use-toast"
-
-// import {
-//   Select,
-//   SelectContent,
-//   SelectGroup,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from "../ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "../ui/toast";
+import SwitchNetworkDialog from "../SwitchNetworkDialog";
 
 export default function Form() {
-  const { toast } = useToast()
+  const { toast } = useToast();
   const [isFutureMintChecked, setIsFutureMintChecked] = useState(false);
   const [isMaxSupplyFixed, setIsMaxSupplyFixed] = useState(true);
-  const [network, setNetwork] = useState<string>("");
   const [connected, setConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [isMdScreen, setIsMdScreen] = useState(true);
@@ -36,7 +28,12 @@ export default function Form() {
       const maxSupply = Number(form.maxSupply?.value);
       if (isFutureMintChecked && isMaxSupplyFixed) {
         if (maxSupply <= initialSupply) {
-          alert("Max supply should be greater than initial supply");
+          toast({
+            variant: "destructive",
+            title: "Invalid Max Supply",
+            description: "Max supply should be greater than initial supply",
+            action: <ToastAction altText="Try again">Try again</ToastAction>,
+          });
           return false;
         }
       }
@@ -47,7 +44,6 @@ export default function Form() {
 
     e.preventDefault();
     setLoading(true);
-    setContractAddress(null);
     const form = e.target as any;
     const tokenName = form.tokenname.value;
     const ticker = form.ticker.value;
@@ -67,7 +63,6 @@ export default function Form() {
     console.log("Max Supply: ", maxSupply);
 
     if (signer) {
-      setContractAddress(null);
       const ERC20LauncherFactory = new ethers.ContractFactory(
         ERC20LauncherABI.abi,
         ERC20LauncherABI.bytecode,
@@ -86,22 +81,30 @@ export default function Form() {
         toast({
           title: "Deploying Contract",
           description: "Please wait...",
-        })
+        });
         await contract.deployed();
         console.log("Contract deployed at:", contract.address);
         setContractAddress(contract.address);
         localStorage.setItem("contractAddress", contract.address);
         toast({
           title: "Contract Deployed",
-          description: `Address: ${truncateAddress(contract.address)} (click to copy)`,
+          description: `Address: ${truncateAddress(
+            contract.address
+          )} (click to copy)`,
           onClick: () => {
             navigator.clipboard.writeText(contract.address);
             toast({
               title: "Copied token address to clipboard",
             });
-          }
-        })
+          },
+        });
       } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error deploying contract",
+          description: (error as any)?.code,
+          action: <ToastAction altText="Try again">Try again</ToastAction>,
+        });
         console.error("Error deploying contract:", error);
       } finally {
         setLoading(false);
@@ -117,13 +120,10 @@ export default function Form() {
       );
       let accounts = await provider.send("eth_requestAccounts", []);
       let account = accounts[0];
-      // console.log(accounts); // Print address
       provider.on("accountsChanged", function (accounts) {
         account = accounts[0];
-        // console.log(account); // Print new address
         setWalletAddress(_walletAddress);
       });
-      // console.log("network: ", await provider.getNetwork());
       const signer = provider.getSigner();
 
       const _walletAddress = await signer.getAddress();
@@ -133,11 +133,29 @@ export default function Form() {
       // localStorage.setItem("walletAddress", _walletAddress);
       toast({
         title: "Wallet Connected",
-        description: "Address: " + _walletAddress,
-      })
+        description: `Address: ${truncateAddress(_walletAddress)}\nNetworkId: ${
+          provider.network.chainId
+        }`,
+        action: (
+          <ToastAction
+            altText="Switch Network"
+            onClick={() => {
+              document.getElementById("switch-network-button")?.click();
+              setConnected(false);
+              setWalletAddress("");
+            }}
+          >
+            Switch Network
+          </ToastAction>
+        ),
+      });
     } else {
+      toast({
+        variant: "destructive",
+        title: "No Ethereum Wallet",
+        description: "Please install an Ethereum wallet like MetaMask",
+      });
       console.log("No Ethereum Wallet");
-      throw new Error("No Ethereum Wallet");
     }
   }
 
@@ -147,7 +165,7 @@ export default function Form() {
     localStorage.removeItem("walletAddress");
     toast({
       title: "Wallet Disconnected",
-    })
+    });
   }
 
   async function handleWalletButtonClick() {
@@ -171,11 +189,6 @@ export default function Form() {
     : "from-purple-400 to-purple-800 hover:from-purple-500 hover:to-purple-700 ease-in-out duration-300 shadow-md";
 
   useEffect(() => {
-    // const storedWalletAddress = localStorage.getItem("walletAddress");
-    // if (storedWalletAddress) {
-    //   setConnected(true);
-    //   setWalletAddress(storedWalletAddress);
-    // }
     const storedContractAddress = localStorage.getItem("contractAddress");
     if (storedContractAddress) {
       setContractAddress(storedContractAddress);
@@ -301,41 +314,37 @@ export default function Form() {
       )}
       {!!contractAddress && (
         <div className="flex justify-center">
-          <button className="text-gray-600 mt-2 text-center text-sm last-address-button" onClick={()=>{navigator.clipboard.writeText(contractAddress);
-            toast({
-              title: "Copied last token address to clipboard",
-              description: truncateAddress(contractAddress),
-            });
-            document.getElementsByClassName("last-address-button")[0].innerHTML = "Copied!"
-            setTimeout(() => {
-              document.getElementsByClassName("last-address-button")[0].innerHTML = `${isMdScreen ? `Last Deployed: ${(contractAddress)}` : `Last Deployed: ${truncateAddress(contractAddress)}`}`
-            }, 2000)
-          }}>
-            {isMdScreen ? `Last Deployed: ${(contractAddress)}` : `Last Deployed: ${(contractAddress)}`}
+          <button
+            className="text-gray-600 mt-2 text-center text-sm last-address-button"
+            onClick={() => {
+              navigator.clipboard.writeText(contractAddress);
+              toast({
+                title: "Copied last token address to clipboard",
+                description: truncateAddress(contractAddress),
+              });
+              document.getElementsByClassName(
+                "last-address-button"
+              )[0].innerHTML = "Copied!";
+              setTimeout(() => {
+                document.getElementsByClassName(
+                  "last-address-button"
+                )[0].innerHTML = `${
+                  isMdScreen
+                    ? `Last Deployed: ${contractAddress}`
+                    : `Last Deployed: ${truncateAddress(contractAddress)}`
+                }`;
+              }, 2000);
+            }}
+          >
+            {isMdScreen
+              ? `Last Deployed: ${contractAddress}`
+              : `Last Deployed: ${truncateAddress(contractAddress)}`}
           </button>
         </div>
       )}
-      {/* <div className="flex justify-between items-center">
-        <div>Network</div>
-        <button>H</button>
-      </div> */}
-      {/* <div className="flex justify-between items-center">
-        <div>Network</div>
-        <Select>
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder={network} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="default">Default Network</SelectItem>
-              <SelectItem value="ethereum-mainnet">Ethereum Mainnet</SelectItem>
-              <SelectItem value="sepolia">Sepolia</SelectItem>
-              <SelectItem value="polygon">Polygon</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div> */}
+      <div className="flex justify-end flex-row">
+        <SwitchNetworkDialog />
+      </div>
     </div>
   );
 }
