@@ -1,21 +1,43 @@
 "use client";
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
+import { ethers } from "ethers";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+// import {
+//   Select,
+//   SelectContent,
+//   SelectGroup,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from "../ui/select";
+
 export default function Form() {
   const [isFutureMintChecked, setIsFutureMintChecked] = useState(false);
   const [isMaxSupplyFixed, setIsMaxSupplyFixed] = useState(true);
+  const [network, setNetwork] = useState<string>("");
+  const [connected, setConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [isMdScreen, setIsMdScreen] = useState(true);
+  
+
+  useEffect(() => {
+    const fetchNetwork = async () => {
+      if (typeof (window as any).ethereum !== "undefined") {
+        const provider = new ethers.providers.Web3Provider(
+          (window as any).ethereum
+        );
+        const network = await provider.getNetwork();
+        console.log(network);
+        setNetwork(network.name);
+      } else {
+        setNetwork("Default Network");
+      }
+    };
+    fetchNetwork();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,6 +53,32 @@ export default function Form() {
     console.log("Form submitted");
   };
 
+  async function connectWallet() {
+    const provider = new ethers.providers.Web3Provider(
+      (window as any).ethereum
+    );
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const _walletAddress = await signer.getAddress();
+    setConnected(true);
+    setWalletAddress(_walletAddress);
+    localStorage.setItem("walletAddress", _walletAddress);
+  }
+
+  function disconnectWallet() {
+    setConnected(false);
+    setWalletAddress("");
+    localStorage.removeItem("walletAddress");
+  }
+
+  async function handleWalletButtonClick() {
+    if (!connected) {
+      await connectWallet();
+    } else {
+      disconnectWallet();
+    }
+  }
+
   const handleFutureMintCheckboxChange = () => {
     setIsFutureMintChecked(!isFutureMintChecked);
   };
@@ -39,6 +87,29 @@ export default function Form() {
     setIsMaxSupplyFixed(!isMaxSupplyFixed);
   };
 
+  const connectButtonClassName = connected
+    ? "bg-red-500"
+    : "from-purple-400 to-purple-800 hover:from-purple-500 hover:to-purple-700 ease-in-out duration-300 shadow-md";
+
+  useEffect(() => {
+    const storedWalletAddress = localStorage.getItem("walletAddress");
+    if (storedWalletAddress) {
+      setConnected(true);
+      setWalletAddress(storedWalletAddress);
+    }
+    const handleResize = () => {
+      setIsMdScreen(window.innerWidth >= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  const truncateAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
   return (
     <div className="max-w-2xl w-full rounded-2xl p-4 md:p-12 shadow-input bg-white dark:bg-black">
       <h1 className="font-bold text-2xl text-neutral-800 dark:text-neutral-200 text-center">
@@ -119,30 +190,49 @@ export default function Form() {
           />
           <Label htmlFor="futureMint">Mint more in future?</Label>
         </div>
-        <button
-          className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
-          type="submit"
-        >
-          Launch
-          <BottomGradient />
-        </button>
+        {connected && (
+          <button
+            className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
+            type="submit"
+          >
+            Launch
+            <BottomGradient />
+          </button>
+        )}
       </form>
-      <div className="flex justify-between items-center">
-        <div>Networks</div>
+      <button
+        className={cn(
+          "bg-gradient-to-br relative group/btn  block w-full text-white rounded-md h-10 font-medium ",
+          connectButtonClassName
+        )}
+        onClick={handleWalletButtonClick}
+      >
+        {connected ? "Disconnect Wallet" : "Connect Wallet"}
+      </button>
+      {connected && (
+        <p className="text-gray-500 mt-2 text-center text-sm"> {isMdScreen ? walletAddress : truncateAddress(walletAddress)}</p>
+      )}
+      {/* <div className="flex justify-between items-center">
+        <div>Network</div>
+        <button>H</button>
+      </div> */}
+      {/* <div className="flex justify-between items-center">
+        <div>Network</div>
         <Select>
           <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="Select a Network" />
+            <SelectValue placeholder={network} />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               <SelectItem value="default">Default Network</SelectItem>
               <SelectItem value="ethereum-mainnet">Ethereum Mainnet</SelectItem>
               <SelectItem value="sepolia">Sepolia</SelectItem>
-              <SelectItem value="Polygon Amoy">Polygon Amoy</SelectItem>
+              <SelectItem value="polygon">Polygon</SelectItem>
+              <SelectItem value="pineapple">Pineapple</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
     </div>
   );
 }
