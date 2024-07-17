@@ -1,10 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import ERC20LauncherABI from "../../../../artifacts/contracts/ERC20Launcher.sol/ERC20Launcher.json";
+
 // import {
 //   Select,
 //   SelectContent,
@@ -21,6 +23,7 @@ export default function Form() {
   const [connected, setConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [isMdScreen, setIsMdScreen] = useState(true);
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
 
   // useEffect(() => {
   //   const fetchNetwork = async () => {
@@ -38,43 +41,85 @@ export default function Form() {
   //   fetchNetwork();
   // }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    function validateForm() {
+      const form = e.target as any;
+      const initialSupply = Number(form.initialSupply.value);
+      const maxSupply = Number(form.maxSupply?.value);
+      if (isFutureMintChecked && isMaxSupplyFixed) {
+        if (maxSupply <= initialSupply) {
+          alert("Max supply should be greater than initial supply");
+          return false;
+        }
+      }
+      return true;
+    }
+    validateForm();
     e.preventDefault();
-    console.log("data", {
-      tokenName: (e.target as any).tokenname.value,
-      ticker: (e.target as any).ticker.value,
-      decimals: (e.target as any).decimals.value,
-      initialSupply: (e.target as any).initialSupply.value,
-      maxSupply: (e.target as any).maxSupply?.value,
-      isFutureMintChecked,
-      isMaxSupplyFixed,
-    });
+    const form = e.target as any;
+    const tokenName = form.tokenname.value;
+    const ticker = form.ticker.value;
+    const decimals = ethers.utils.parseUnits(form.decimals.value, 0);
+    const initialSupply = ethers.utils.parseUnits(form.initialSupply.value, 0);
+    const maxSupply = isFutureMintChecked
+      ? isMaxSupplyFixed
+        ? ethers.utils.parseUnits(form.maxSupply.value, decimals)
+        : ethers.constants.MaxUint256
+      : ethers.utils.parseUnits(form.initialSupply.value, decimals);
     console.log("Form submitted");
+    console.log("Token Name: ", tokenName);
+    console.log("Ticker: ", ticker);
+    console.log("Decimals: ", decimals);
+    console.log("Initial Supply: ", initialSupply);
+    console.log("Max Supply: ", maxSupply);
+
+    if (signer) {
+      const ERC20LauncherFactory = new ethers.ContractFactory(
+        ERC20LauncherABI.abi,
+        ERC20LauncherABI.bytecode,
+        signer
+      );
+
+      try {
+        const contract = await ERC20LauncherFactory.deploy(
+          tokenName,
+          ticker,
+          initialSupply,
+          decimals,
+          maxSupply
+        );
+
+        await contract.deployed();
+        console.log("Contract deployed at:", contract.address);
+      } catch (error) {
+        console.error("Error deploying contract:", error);
+      }
+    }
   };
 
   async function connectWallet() {
     if (typeof (window as any).ethereum !== "undefined") {
       // show all the connected wallets and give options to connect other wallet
       const provider = new ethers.providers.Web3Provider(
-        (window as any).ethereum, "any"
+        (window as any).ethereum,
+        "any"
       );
-
-      let accounts = await provider.send("eth_accounts", []);
-
+      let accounts = await provider.send("eth_requestAccounts", []);
       let account = accounts[0];
       console.log(accounts); // Print address
-      provider.on('accountsChanged', function (accounts) {
-          account = accounts[0];
-          console.log(account); // Print new address
-          setWalletAddress(_walletAddress);
+      provider.on("accountsChanged", function (accounts) {
+        account = accounts[0];
+        console.log(account); // Print new address
+        setWalletAddress(_walletAddress);
       });
-  
+      // console.log("network: ", await provider.getNetwork());
       const signer = provider.getSigner();
-  
+
       const _walletAddress = await signer.getAddress();
       setConnected(true);
       setWalletAddress(_walletAddress);
-      localStorage.setItem("walletAddress", _walletAddress);
+      setSigner(signer);
+      // localStorage.setItem("walletAddress", _walletAddress);
     } else {
       console.log("No Ethereum Wallet");
       throw new Error("No Ethereum Wallet");
@@ -108,11 +153,11 @@ export default function Form() {
     : "from-purple-400 to-purple-800 hover:from-purple-500 hover:to-purple-700 ease-in-out duration-300 shadow-md";
 
   useEffect(() => {
-    const storedWalletAddress = localStorage.getItem("walletAddress");
-    if (storedWalletAddress) {
-      setConnected(true);
-      setWalletAddress(storedWalletAddress);
-    }
+    // const storedWalletAddress = localStorage.getItem("walletAddress");
+    // if (storedWalletAddress) {
+    //   setConnected(true);
+    //   setWalletAddress(storedWalletAddress);
+    // }
     const handleResize = () => {
       setIsMdScreen(window.innerWidth >= 768);
     };
