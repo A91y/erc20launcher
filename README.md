@@ -86,7 +86,7 @@ cd app
 npm run dev
 ```
 
-Access the application at `http://localhost:3000`.
+Access the application at `http://localhost:3000` or visit the live deployment at [ERC20Launcher](https://erc20launcher.ayushagr.me).
 
 ## 🛠️ Development
 
